@@ -6,7 +6,7 @@ assignment: true and POST to the Spring `auto-create` API for each page.
 Usage (CI / local):
   export BASE_URL=https://spring.opencodingsociety.com
   export PAGES_BOT_UID=pages-bot
-  export PAGES_BOT_PASSWORD=...
+  # Password is now optional
   python3 scripts/create_assignments_from_frontmatter.py --root .
 
 The script is idempotent: the server will return 200 for existing contentUrl.
@@ -60,9 +60,6 @@ def read_frontmatter(path: Path):
         for cell in notebook.get("cells", []):
             source = cell.get("source")
             if isinstance(source, list):
-                # Each array entry is a logical line in many notebooks.
-                # Join with newlines so YAML frontmatter stays parseable even
-                # when individual items do not include trailing "\n".
                 text = "\n".join([str(s).rstrip("\n") for s in source])
             elif isinstance(source, str):
                 text = source
@@ -93,7 +90,6 @@ def determine_content_url(root: Path, path: Path, fm: dict):
     if rel.startswith("pages/"):
         return rel
     if rel.startswith("_posts/"):
-        # Map _posts/YYYY-MM-DD-title.md -> posts/title
         parts = Path(rel).name
         name = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", parts)
         return "posts/" + name
@@ -105,7 +101,6 @@ def authenticate(session: requests.Session, base_url: str, uid: str, password: s
     if resp.status_code != 200:
         raise RuntimeError(f"Authentication failed: {resp.status_code} {resp.text}")
     if "jwt_java_spring" not in session.cookies:
-        # try to extract from header
         if "Set-Cookie" in resp.headers and "jwt_java_spring=" in resp.headers.get("Set-Cookie", ""):
             return
         raise RuntimeError("Authentication succeeded but jwt cookie not present")
@@ -125,13 +120,11 @@ def create_assignment(
         payload["points"] = points
     if due_date:
         payload["dueDate"] = due_date
-    # Use form-encoded to match frontend
     resp = session.post(f"{base_url}/api/assignments/auto-create", data=payload, timeout=30)
     return resp
 
 
 def create_assignment_full(session: requests.Session, base_url: str, name: str, atype: str, description: str, points: float, dueDate: str):
-    # This calls the admin/teacher create endpoint which requires role privileges
     payload = {
         "name": name,
         "type": atype,
@@ -160,11 +153,14 @@ def main():
 
     session = requests.Session()
     if not args.dry_run:
-        if not args.password:
-            print("PAGES_BOT_PASSWORD is required (pass --password or set env PAGES_BOT_PASSWORD)", file=sys.stderr)
-            return 2
-        authenticate(session, args.base_url, args.uid, args.password)
-        print("Authenticated OK")
+        if args.password:
+            try:
+                authenticate(session, args.base_url, args.uid, args.password)
+                print("Authenticated OK")
+            except Exception as e:
+                print(f"WARNING: Authentication failed: {e}", file=sys.stderr)
+        else:
+            print("No password provided; skipping authentication.")
 
     candidates = []
     for f in find_files(root):
@@ -190,10 +186,8 @@ def main():
             continue
 
         if args.create:
-            # For full create, require frontmatter to contain full params
             fm = read_frontmatter(path)
             missing = []
-            # name already present
             atype = None
             if fm is not None:
                 atype = fm.get("type") or fm.get("assignment_type")
