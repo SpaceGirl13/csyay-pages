@@ -165,7 +165,8 @@ def main():
     candidates = []
     for f in find_files(root):
         fm = read_frontmatter(f)
-        if not fm:
+        # Ensure fm is actually a dictionary before using .get()
+        if not fm or not isinstance(fm, dict):
             continue
         if fm.get("assignment") is True:
             content_url = determine_content_url(root, f, fm)
@@ -187,10 +188,11 @@ def main():
 
         if args.create:
             fm = read_frontmatter(path)
+            if not fm or not isinstance(fm, dict):
+                print(f"  SKIP: invalid or missing frontmatter for full create")
+                continue
             missing = []
-            atype = None
-            if fm is not None:
-                atype = fm.get("type") or fm.get("assignment_type")
+            atype = fm.get("type") or fm.get("assignment_type")
             if not atype:
                 missing.append("type")
             points = None
