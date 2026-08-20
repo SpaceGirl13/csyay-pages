@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Byte & Brew - AP CSA Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --cream: #fdf6ec;
+    --brown: #5c3d2e;
+    --brown-light: #8b5e3c;
+    --boba: #c8956c;
+    --matcha: #7da87b;
+    --lavender: #9b8bbf;
+    --peach: #e8a87c;
+    --rose: #d4789a;
+    --card: #fff8f0;
+    --shadow: rgba(92,61,46,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--cream);
+    color: var(--brown);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Floating bubbles background ── */
+  .bubbles {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.12;
+    animation: float linear infinite;
+  }
+
+  @keyframes float {
+    0%   { transform: translateY(110vh) scale(0.8); opacity: 0; }
+    10%  { opacity: 0.12; }
+    90%  { opacity: 0.12; }
+    100% { transform: translateY(-10vh) scale(1.1); opacity: 0; }
+  }
+
+  /* ── Layout ── */
+  #app {
+    position: relative; z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .header .shop-name {
+    font-size: 2.6rem;
+    font-weight: 900;
+    color: var(--brown);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header .shop-name span { color: var(--boba); }
+  .header .tagline {
+    font-size: 1rem;
+    color: var(--brown-light);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  /* ── Progress bar ── */
+  .progress-wrap {
+    background: #ecdcc8;
+    border-radius: 12px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--boba), var(--rose));
+    border-radius: 12px;
+    transition: width 0.5s ease;
+  }
+  .progress-label {
+    font-size: 0.82rem;
+    color: var(--brown-light);
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── Score strip ── */
+  .score-strip {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    justify-content: center;
+  }
+  .badge {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge.stars  { background: #fff3d6; color: #b07c00; }
+  .badge.unit   { background: #e8f4e8; color: #3a6b38; }
+  .badge.streak { background: #fdeaf2; color: #a0456b; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 28px 28px 24px;
+    box-shadow: 0 4px 24px var(--shadow), 0 1px 3px var(--shadow);
+    animation: slideUp 0.35s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .unit-tag {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .unit-tag.u3 { background: #ede4ff; color: var(--lavender); }
+  .unit-tag.u4 { background: #e4f4e4; color: var(--matcha); }
+
+  .question-num {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--boba);
+    margin-bottom: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .question-text {
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    color: var(--brown);
+  }
+
+  .code-block {
+    font-family: 'Space Mono', monospace;
+    background: #2d1f14;
+    color: #f0d9b5;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    margin: 12px 0 18px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .kw  { color: #e06c75; }
+  .code-block .ty  { color: #61afef; }
+  .code-block .str { color: #98c379; }
+  .code-block .cm  { color: #7d8fa3; font-style: italic; }
+  .code-block .num { color: #d19a66; }
+
+  /* ── Options ── */
+  .options { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+  .option-btn {
+    background: #fff;
+    border: 2.5px solid #ecdcc8;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: var(--brown);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--boba);
+    background: #fff8f3;
+    transform: translateX(4px);
+  }
+  .option-btn .letter {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: #ecdcc8;
+    color: var(--brown);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.82rem;
+    font-weight: 900;
+    flex-shrink: 0;
+    transition: all 0.18s;
+  }
+  .option-btn.correct {
+    border-color: var(--matcha);
+    background: #edf7ed;
+  }
+  .option-btn.correct .letter {
+    background: var(--matcha);
+    color: #fff;
+  }
+  .option-btn.wrong {
+    border-color: #e07070;
+    background: #fdf0f0;
+    opacity: 0.7;
+  }
+  .option-btn.wrong .letter {
+    background: #e07070;
+    color: #fff;
+  }
+  .option-btn.selected-wrong {
+    border-color: #e07070;
+    background: #fdf0f0;
+  }
+  .option-btn.selected-wrong .letter {
+    background: #e07070;
+    color: #fff;
+  }
+  .option-btn:disabled { cursor: not-allowed; }
+
+  /* ── Feedback box ── */
+  .feedback {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.5;
+    animation: popIn 0.25s ease;
+    display: none;
+  }
+  .feedback.show { display: block; }
+  .feedback.correct-fb { background: #edf7ed; color: #2e6b2c; border: 2px solid #b2dbb0; }
+  .feedback.wrong-fb   { background: #fdf0f0; color: #8c2020; border: 2px solid #f0b8b8; }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Next button ── */
+  .btn-next {
+    margin-top: 18px;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--boba), var(--rose));
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    display: none;
+  }
+  .btn-next.show { display: block; }
+  .btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(200,149,108,0.45); }
+  .btn-next:active { transform: translateY(0); }
+
+  /* ── Start / End screens ── */
+  .screen {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .screen .icon { font-size: 4rem; margin-bottom: 16px; }
+  .screen h1 {
+    font-size: 2rem; font-weight: 900;
+    color: var(--brown); margin-bottom: 8px;
+  }
+  .screen p {
+    color: var(--brown-light); font-size: 1rem;
+    line-height: 1.6; max-width: 500px; margin: 0 auto 24px;
+    font-weight: 600;
+  }
+  .btn-start {
+    padding: 16px 48px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brown), var(--brown-light));
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-start:hover { transform: translateY(-3px); box-shadow: 0 8px 24px var(--shadow); }
+
+  .end-score-ring {
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: conic-gradient(var(--boba) 0%, var(--rose) var(--pct), #ecdcc8 var(--pct));
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .end-score-ring::before {
+    content: '';
+    position: absolute;
+    width: 100px; height: 100px;
+    border-radius: 50%;
+    background: var(--card);
+  }
+  .end-score-num {
+    position: relative; z-index: 1;
+    font-size: 1.8rem; font-weight: 900; color: var(--brown);
+  }
+
+  .review-btn {
+    padding: 12px 32px;
+    border: 2.5px solid var(--boba);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--brown);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.97rem;
+    font-weight: 800;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: all 0.2s;
+  }
+  .review-btn:hover { background: var(--boba); color: #fff; }
+
+  /* ── Review mode ── */
+  .review-list { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+  .review-item {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 10px var(--shadow);
+    text-align: left;
+  }
+  .review-item .ri-q { font-weight: 800; margin-bottom: 8px; font-size: 0.95rem; color: var(--brown); }
+  .review-item .ri-result {
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 6px;
+    padding: 4px 12px; border-radius: 20px; display: inline-block;
+  }
+  .ri-result.ok  { background: #edf7ed; color: #2e6b2c; }
+  .ri-result.bad { background: #fdf0f0; color: #8c2020; }
+  .review-item .ri-ans { font-size: 0.88rem; color: var(--brown-light); font-weight: 600; }
+  .review-item .ri-ans strong { color: var(--matcha); }
+
+  .section-hdr {
+    font-size: 1.1rem; font-weight: 900; color: var(--brown);
+    margin: 24px 0 10px; padding-bottom: 6px;
+    border-bottom: 2px solid #ecdcc8;
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating boba bubbles -->
+<div class="bubbles" id="bubbles"></div>
+
+<div id="app">
+  <div class="header">
+    <div class="shop-name">Byte <span>&</span> Brew</div>
+    <div class="tagline">AP CSA Units 3 & 4 -- End of Unit Quiz</div>
+  </div>
+
+  <!-- START SCREEN -->
+  <div id="start-screen" class="card screen">
+    <div class="icon">☕</div>
+    <h1>Welcome to the Quiz!</h1>
+    <p>20 questions covering Units 3 and 4 -- from class design and references to arrays, sorting, and recursion. Earn stars for correct answers and keep your streak going.</p>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:24px;">
+      <div class="badge stars">20 Questions</div>
+      <div class="badge unit">Units 3 + 4</div>
+      <div class="badge streak">MCQ Style</div>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">Start Brewing</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz-screen" style="display:none;">
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+    <div class="progress-label">
+      <span id="prog-text">Question 1 of 20</span>
+      <span id="streak-text"></span>
+    </div>
+    <div class="score-strip">
+      <div class="badge stars" id="score-badge">Stars: 0</div>
+      <div class="badge unit" id="unit-badge">Unit 3</div>
+      <div class="badge streak" id="streak-badge">Streak: 0</div>
+    </div>
+    <div class="card" id="q-card">
+      <div class="unit-tag" id="q-unit-tag">Unit 3</div>
+      <div class="question-num" id="q-num">Q1 of 20</div>
+      <div class="question-text" id="q-text"></div>
+      <div id="q-code" class="code-block" style="display:none;"></div>
+      <div class="options" id="q-options"></div>
+      <div class="feedback" id="q-feedback"></div>
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">Next Question &rarr;</button>
+    </div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div id="end-screen" style="display:none;" class="card screen">
+    <div class="end-score-ring" id="score-ring">
+      <div class="end-score-num" id="final-score-num">--</div>
+    </div>
+    <h1 id="end-title">Well done!</h1>
+    <p id="end-msg"></p>
+    <button class="btn-start" onclick="startQuiz()">Retake Quiz</button>
+    <br>
+    <button class="review-btn" onclick="showReview()">Review Answers</button>
+  </div>
+
+  <!-- REVIEW SCREEN -->
+  <div id="review-screen" style="display:none;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button class="review-btn" onclick="backToEnd()" style="margin-top:0;">Back</button>
+      <div style="font-weight:900;font-size:1.2rem;color:var(--brown);">Answer Review</div>
+    </div>
+    <div id="review-content"></div>
+  </div>
+</div>
+
+<script>
+// ── Bubble generator ──────────────────────────────────────────────
+const colors = ['#c8956c','#9b8bbf','#7da87b','#d4789a','#e8a87c','#5c3d2e'];
+const wrap = document.getElementById('bubbles');
+for (let i = 0; i < 22; i++) {
+  const b = document.createElement('div');
+  b.className = 'bubble';
+  const sz = 18 + Math.random() * 50;
+  b.style.cssText = `
+    width:${sz}px;height:${sz}px;
+    left:${Math.random()*100}%;
+    background:${colors[Math.floor(Math.random()*colors.length)]};
+    animation-duration:${10+Math.random()*18}s;
+    animation-delay:${-Math.random()*20}s;
+  `;
+  wrap.appendChild(b);
+}
+
+// ── Questions ─────────────────────────────────────────────────────
+const QUESTIONS = [
+  // ── UNIT 3 ──────────────────────────────────────────────────────
+  {
+    unit: 3, topic: "3.6 - Passing References",
+    q: "What does the following method do to the MenuItem object passed to it?",
+    code: `<span class="kw">public static void</span> <span class="ty">applyDiscount</span>(MenuItem item, <span class="kw">double</span> pct) {
+    item.setPrice(item.getPrice() * (<span class="num">1</span> - pct));
+}`,
+    options: [
+      "Nothing -- primitives are passed by value and cannot be changed.",
+      "It modifies a copy of the object, leaving the original unchanged.",
+      "It modifies the original object because objects are passed by reference.",
+      "It throws a NullPointerException."
+    ],
+    answer: 2,
+    explain: "Objects in Java are passed by reference -- the parameter 'item' points to the same object in memory as the caller's variable. setPrice() changes the actual object."
+  },
+  {
+    unit: 3, topic: "3.6 - Passing References",
+    q: "A method receives an int parameter and doubles it. After the method returns, what is the value of the original int variable in the caller?",
+    options: [
+      "The original value -- primitives are passed by value.",
+      "Double the original value -- the method changed it.",
+      "Zero, because primitives are reset.",
+      "It depends on the return type."
+    ],
+    answer: 0,
+    explain: "Primitives (int, double, boolean, etc.) are passed by VALUE in Java. The method gets a copy; changes inside the method do not affect the original."
+  },
+  {
+    unit: 3, topic: "3.7 - Class vs. Instance",
+    q: "In the Cafe class below, how should totalOrders be declared so it counts orders across ALL Cafe objects?",
+    code: `<span class="kw">public class</span> <span class="ty">Cafe</span> {
+    <span class="cm">// ??? totalOrders = 0;</span>
+    <span class="kw">private</span> String name;
+}`,
+    options: [
+      "private int totalOrders = 0;",
+      "public int totalOrders = 0;",
+      "private static int totalOrders = 0;",
+      "final int totalOrders = 0;"
+    ],
+    answer: 2,
+    explain: "static variables belong to the CLASS, not any individual object. All instances share one copy -- perfect for counting across all Cafes."
+  },
+  {
+    unit: 3, topic: "3.7 - Static Methods",
+    q: "Which statement about static methods is TRUE?",
+    options: [
+      "Static methods can access instance variables directly.",
+      "Static methods require an object to be called.",
+      "Static methods can be called using the class name without creating an object.",
+      "Static methods cannot have parameters."
+    ],
+    answer: 2,
+    explain: "Static methods belong to the class itself. You call them as ClassName.methodName() -- no object needed. They cannot access instance variables (non-static fields) directly."
+  },
+  {
+    unit: 3, topic: "3.8 - Scope & Access",
+    q: "A variable declared inside a for loop -- where is it accessible?",
+    options: [
+      "Anywhere in the class.",
+      "Anywhere in the method that contains the loop.",
+      "Only inside that for loop block.",
+      "Accessible to all subclasses."
+    ],
+    answer: 2,
+    explain: "A variable declared inside a loop has BLOCK scope -- it only exists within the curly braces of that loop. It is destroyed when the loop ends."
+  },
+  {
+    unit: 3, topic: "3.8 - Access Modifiers",
+    q: "What does the private access modifier mean for an instance variable?",
+    options: [
+      "It can only be accessed within the same class.",
+      "It can be accessed by any class in the program.",
+      "It can only be accessed by subclasses.",
+      "It cannot be changed after it is assigned."
+    ],
+    answer: 0,
+    explain: "private means visible ONLY inside the class where it is declared. This enforces encapsulation -- you expose behavior through public methods (getters/setters) instead."
+  },
+  {
+    unit: 3, topic: "3.9 - this Keyword",
+    q: "What is the purpose of 'this' in the constructor below?",
+    code: `<span class="kw">public</span> <span class="ty">Drink</span>(String name, <span class="kw">double</span> price) {
+    <span class="kw">this</span>.name = name;
+    <span class="kw">this</span>.price = price;
+}`,
+    options: [
+      "It calls the parent class constructor.",
+      "It distinguishes the instance variable from the parameter with the same name.",
+      "It creates a copy of the object.",
+      "It makes the fields static."
+    ],
+    answer: 1,
+    explain: "'this.name' refers to the instance variable; 'name' alone refers to the parameter. When they share a name, 'this' is needed to disambiguate."
+  },
+  {
+    unit: 3, topic: "3.9 - this Keyword",
+    q: "Which code correctly uses 'this()' inside a constructor?",
+    options: [
+      "this.Drink(\"Matcha\");",
+      "this(\"Matcha\", 5.50);",
+      "Drink.this(\"Matcha\", 5.50);",
+      "super(\"Matcha\", 5.50);"
+    ],
+    answer: 1,
+    explain: "this(...) calls another constructor in the SAME class (constructor chaining). It must be the first statement in the constructor. super(...) calls the PARENT class constructor."
+  },
+
+  // ── UNIT 4 ──────────────────────────────────────────────────────
+  {
+    unit: 4, topic: "4.3 - Array Creation",
+    q: "What is the value of orders[2] immediately after this line executes?",
+    code: `String[] orders = <span class="kw">new</span> String[<span class="num">5</span>];`,
+    options: [
+      "\"\"",
+      "0",
+      "null",
+      "undefined"
+    ],
+    answer: 2,
+    explain: "Object arrays (including String[]) are initialized to null by default. int arrays initialize to 0, boolean arrays to false."
+  },
+  {
+    unit: 4, topic: "4.4 - Array Traversals",
+    q: "The loop below is supposed to sum all drink prices. What is wrong?",
+    code: `<span class="kw">double</span>[] prices = {<span class="num">4.5</span>, <span class="num">5.0</span>, <span class="num">3.75</span>};
+<span class="kw">double</span> total = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="num">1</span>; i <= prices.length; i++) {
+    total += prices[i];
+}`,
+    options: [
+      "total should be initialized to 1.",
+      "The loop starts at index 1, skipping prices[0], and also throws ArrayIndexOutOfBoundsException when i == prices.length.",
+      "prices.length should be prices.length - 1.",
+      "A for-each loop must be used instead."
+    ],
+    answer: 1,
+    explain: "Two bugs: starting at i=1 skips the first element (index 0), AND i <= prices.length causes an out-of-bounds access when i equals the length (last valid index is length - 1)."
+  },
+  {
+    unit: 4, topic: "4.5 - Array Algorithms",
+    q: "Which algorithm finds the largest value in an array?",
+    options: [
+      "Initialize max = 0, then skip any element smaller than max.",
+      "Initialize max = array[0], then iterate and update max whenever you find a larger value.",
+      "Sort the array first, then return array[0].",
+      "Count how many times each value appears."
+    ],
+    answer: 1,
+    explain: "Standard max search: seed max with the first element, then scan the rest. Initializing to 0 fails for all-negative arrays. Sorting works but is O(n log n) vs. O(n)."
+  },
+  {
+    unit: 4, topic: "4.7 - Wrapper Classes",
+    q: "What does Integer.parseInt(\"42\") return?",
+    options: [
+      "The String \"42\"",
+      "The Integer object 42",
+      "The primitive int 42",
+      "It throws an exception -- you cannot convert strings to ints."
+    ],
+    answer: 2,
+    explain: "Integer.parseInt() converts a String to a primitive int. Integer.valueOf() returns an Integer OBJECT. Autoboxing can convert between them automatically."
+  },
+  {
+    unit: 4, topic: "4.8 - ArrayList Methods",
+    q: "After running the code below, what does orders contain?",
+    code: `ArrayList&lt;String&gt; orders = <span class="kw">new</span> ArrayList&lt;&gt;();
+orders.add(<span class="str">\"Matcha\"</span>);
+orders.add(<span class="str">\"Taro\"</span>);
+orders.add(<span class="str">\"Oolong\"</span>);
+orders.remove(<span class="num">1</span>);`,
+    options: [
+      "[Matcha, Taro, Oolong]",
+      "[Matcha, Oolong]",
+      "[Taro, Oolong]",
+      "[Matcha, Taro]"
+    ],
+    answer: 1,
+    explain: "remove(1) removes the element at INDEX 1, which is \"Taro\". Remaining: [Matcha, Oolong]. Note: remove(\"Taro\") removes by VALUE, while remove(1) removes by INDEX."
+  },
+  {
+    unit: 4, topic: "4.9 - ArrayList Traversal",
+    q: "Why is it dangerous to call orders.remove() inside an indexed for loop?",
+    options: [
+      "ArrayList does not support remove().",
+      "Removing an element shifts remaining elements left, causing you to skip the next element.",
+      "The loop variable becomes negative.",
+      "It is perfectly safe -- no issue exists."
+    ],
+    answer: 1,
+    explain: "When you remove index i, element at i+1 slides to position i. The loop then increments i, so the new element at i is skipped. Use a backwards loop or an Iterator to safely remove during traversal."
+  },
+  {
+    unit: 4, topic: "4.11 - 2D Arrays",
+    q: "For a 2D array declared as int[][] sales = new int[3][5], what is sales.length?",
+    options: [
+      "15",
+      "5",
+      "3",
+      "8"
+    ],
+    answer: 2,
+    explain: "sales.length is the number of ROWS (3). sales[0].length is the number of COLUMNS (5). Total elements = 3 * 5 = 15."
+  },
+  {
+    unit: 4, topic: "4.12 - 2D Traversal",
+    q: "What does the outer loop variable represent in a standard row-major 2D traversal?",
+    code: `<span class="kw">for</span> (<span class="kw">int</span> r = <span class="num">0</span>; r < grid.length; r++) {
+    <span class="kw">for</span> (<span class="kw">int</span> c = <span class="num">0</span>; c < grid[r].length; c++) {
+        System.out.print(grid[r][c] + <span class="str">\" \"</span>);
+    }
+}`,
+    options: [
+      "The column index",
+      "The total number of elements",
+      "The row index",
+      "The value at each cell"
+    ],
+    answer: 2,
+    explain: "In row-major order, the outer loop (r) iterates over rows and the inner loop (c) iterates over columns within each row. grid[r][c] accesses row r, column c."
+  },
+  {
+    unit: 4, topic: "4.14 - Searching",
+    q: "Binary search requires which precondition?",
+    options: [
+      "The array must contain only integers.",
+      "The array must be sorted.",
+      "The array must have an even number of elements.",
+      "The target element must be at an even index."
+    ],
+    answer: 1,
+    explain: "Binary search works by repeatedly halving the search range -- this only works correctly if the data is SORTED. Linear search works on any array but is O(n) vs. O(log n)."
+  },
+  {
+    unit: 4, topic: "4.15 - Sorting",
+    q: "Selection sort finds the minimum element in the unsorted portion and swaps it to the front. What is its time complexity?",
+    options: [
+      "O(n) -- it only makes one pass.",
+      "O(log n) -- it halves the problem each time.",
+      "O(n^2) -- it uses nested loops over the array.",
+      "O(n log n) -- same as merge sort."
+    ],
+    answer: 2,
+    explain: "Selection sort uses a nested loop: outer loop runs n times, inner loop scans the remaining n-i elements. Total comparisons ~= n^2 / 2, which is O(n^2)."
+  },
+  {
+    unit: 4, topic: "4.16 - Recursion",
+    q: "What is the output of countDown(3)?",
+    code: `<span class="kw">public static void</span> <span class="ty">countDown</span>(<span class="kw">int</span> n) {
+    <span class="kw">if</span> (n == <span class="num">0</span>) { System.out.println(<span class="str">\"Order up!\"</span>); <span class="kw">return</span>; }
+    System.out.println(n);
+    countDown(n - <span class="num">1</span>);
+}`,
+    options: [
+      "Order up! 1 2 3",
+      "3 2 1 Order up!",
+      "3 2 1",
+      "Order up!"
+    ],
+    answer: 1,
+    explain: "The method prints n BEFORE the recursive call, so numbers print in descending order (3, 2, 1). The base case (n==0) prints \"Order up!\" last."
+  },
+  {
+    unit: 4, topic: "4.17 - Recursive Sort",
+    q: "Merge sort has O(n log n) time complexity. What key operation makes it efficient compared to O(n^2) sorts?",
+    options: [
+      "It scans only half the array each pass.",
+      "It swaps the minimum to the front each pass.",
+      "It divides the array in half recursively, then merges sorted halves -- no unnecessary comparisons.",
+      "It uses binary search to find insertion points."
+    ],
+    answer: 2,
+    explain: "Merge sort divides (O(log n) levels of recursion) and merges (O(n) work per level) -- total O(n log n). The merge step never re-compares elements already ordered, making it far more efficient than O(n^2) sorts."
+  }
+];
+
+// ── State ────────────────────────────────────────────────────────
+let current = 0, score = 0, streak = 0, answered = false;
+let results = []; // {q, chosen, correct, pass}
+
+function startQuiz() {
+  current = 0; score = 0; streak = 0; answered = false; results = [];
+  show('quiz-screen');
+  renderQuestion();
+}
+
+function show(id) {
+  ['start-screen','quiz-screen','end-screen','review-screen'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? (s === 'quiz-screen' ? 'block' : 'flex') : 'none';
+  });
+  if (id === 'quiz-screen') document.getElementById('quiz-screen').style.display = 'block';
+  if (id === 'review-screen') document.getElementById('review-screen').style.display = 'block';
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[current];
+  answered = false;
+
+  // Progress
+  const pct = (current / QUESTIONS.length) * 100;
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `Question ${current + 1} of ${QUESTIONS.length}`;
+
+  // Badges
+  document.getElementById('score-badge').textContent = `Stars: ${score}`;
+  document.getElementById('unit-badge').textContent = `Unit ${q.unit}`;
+  document.getElementById('streak-badge').textContent = `Streak: ${streak}`;
+
+  // Card
+  const tag = document.getElementById('q-unit-tag');
+  tag.textContent = q.topic;
+  tag.className = 'unit-tag ' + (q.unit === 3 ? 'u3' : 'u4');
+
+  document.getElementById('q-num').textContent = `Q${current + 1} of ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = q.q;
+
+  const codeEl = document.getElementById('q-code');
+  if (q.code) {
+    codeEl.style.display = 'block';
+    codeEl.innerHTML = q.code;
+  } else {
+    codeEl.style.display = 'none';
+  }
+
+  // Options
+  const letters = ['A','B','C','D'];
+  const optWrap = document.getElementById('q-options');
+  optWrap.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="letter">${letters[i]}</span><span>${opt}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    optWrap.appendChild(btn);
+  });
+
+  // Reset feedback / next
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'feedback';
+  fb.textContent = '';
+
+  document.getElementById('btn-next').className = 'btn-next';
+  const last = current === QUESTIONS.length - 1;
+  document.getElementById('btn-next').textContent = last ? 'See My Results' : 'Next Question →';
+}
+
+function selectAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  const q = QUESTIONS[current];
+  const correct = chosen === q.answer;
+  const btns = document.querySelectorAll('.option-btn');
+
+  btns.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.answer) btn.classList.add('correct');
+    else if (i === chosen) btn.classList.add('selected-wrong');
+    else btn.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  if (correct) {
+    score++;
+    streak++;
+    fb.className = 'feedback correct-fb show';
+    fb.innerHTML = `<strong>${streak >= 3 ? '🔥 x' + streak + ' streak! ' : ''}Correct!</strong> ${q.explain}`;
+  } else {
+    streak = 0;
+    fb.className = 'feedback wrong-fb show';
+    fb.innerHTML = `<strong>Not quite.</strong> ${q.explain}`;
+  }
+
+  results.push({ q: q.q, topic: q.topic, unit: q.unit, chosen, correct, answer: q.answer, opts: q.options });
+
+  document.getElementById('score-badge').textContent = `Stars: ${score}`;
+  document.getElementById('streak-badge').textContent = `Streak: ${streak}`;
+  document.getElementById('btn-next').className = 'btn-next show';
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= QUESTIONS.length) {
+    showEnd();
+  } else {
+    // Re-render card with animation
+    const card = document.getElementById('q-card');
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = '';
+    renderQuestion();
+  }
+}
+
+function showEnd() {
+  show('end-screen');
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  document.getElementById('score-ring').style.setProperty('--pct', pct + '%');
+  document.getElementById('final-score-num').textContent = `${score}/${QUESTIONS.length}`;
+
+  let title, msg;
+  if (pct === 100) {
+    title = 'Perfect Score!';
+    msg = 'You crushed every question -- the cafe is running at full capacity. You are absolutely ready for the AP exam.';
+  } else if (pct >= 80) {
+    title = 'Stellar Work!';
+    msg = `${score} out of ${QUESTIONS.length} -- the barista approves. A few concepts to review, but you have a solid grip on the material.`;
+  } else if (pct >= 60) {
+    title = 'Getting There!';
+    msg = `${score} out of ${QUESTIONS.length} -- the order is coming along. Review the questions you missed and you will have it down.`;
+  } else {
+    title = 'Keep Brewing!';
+    msg = `${score} out of ${QUESTIONS.length} -- every expert was once a beginner. Hit Review Answers below to see what tripped you up.`;
+  }
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-msg').textContent = msg;
+}
+
+function showReview() {
+  show('review-screen');
+  const content = document.getElementById('review-content');
+  const u3 = results.filter(r => r.unit === 3);
+  const u4 = results.filter(r => r.unit === 4);
+
+  function renderGroup(items, label) {
+    if (!items.length) return '';
+    let html = `<div class="section-hdr">${label}</div><div class="review-list">`;
+    items.forEach((r, i) => {
+      const passClass = r.correct ? 'ok' : 'bad';
+      const passText  = r.correct ? 'Correct' : 'Incorrect';
+      const letters   = ['A','B','C','D'];
+      html += `
+        <div class="review-item">
+          <div class="ri-q">${r.topic}</div>
+          <div class="ri-q" style="font-weight:600;color:#7a5a40;">${r.q.substring(0,120)}${r.q.length > 120 ? '...' : ''}</div>
+          <div class="ri-result ${passClass}">${passText}</div>
+          ${!r.correct ? `<div class="ri-ans">You chose: ${letters[r.chosen]}. Correct: <strong>${letters[r.answer]}) ${r.opts[r.answer]}</strong></div>` : ''}
+        </div>`;
+    });
+    return html + '</div>';
+  }
+
+  content.innerHTML = renderGroup(u3, 'Unit 3 -- Class Design') + renderGroup(u4, 'Unit 4 -- Data Collections');
+}
+
+function backToEnd() {
+  show('end-screen');
+  // Re-render score ring pct since it was set earlier
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  document.getElementById('score-ring').style.setProperty('--pct', pct + '%');
+}
+
+// Show start screen initially
+document.getElementById('start-screen').style.display = 'flex';
+document.getElementById('quiz-screen').style.display = 'none';
+document.getElementById('end-screen').style.display = 'none';
+document.getElementById('review-screen').style.display = 'none';
+</script>
+</body>
+</html>
